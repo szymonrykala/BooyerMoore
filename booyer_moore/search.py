@@ -72,8 +72,8 @@ if __name__ == "__main__":
     TEXT = get_text()
     PATTERN = get_arg("--pattern")
 
-    SEGMENT_LENGTH = int(get_arg("--segment-length", 100))
-    SEGMENTS_PER_WORKER = int(get_arg("--segments-per-worker", 2))
+    SEGMENT_LENGTH = int(get_arg("--segment-length", 2_000))
+    SEGMENTS_PER_WORKER = int(get_arg("--segments-per-worker", 4))
     WORKERS = round(len(TEXT) / (SEGMENT_LENGTH*SEGMENTS_PER_WORKER))
     WORKERS = 1 if WORKERS == 0 else WORKERS
 
@@ -103,3 +103,5 @@ if __name__ == "__main__":
     print("Results:")
     for r in results:
         print(r)
+
+    print(f"Total count: {len(results)}")
