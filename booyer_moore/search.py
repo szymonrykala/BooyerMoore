@@ -6,6 +6,7 @@ from time import time
 from typing import Union
 import sys
 import fileinput
+from utils import get_arg
 
 
 @dataclass
@@ -19,18 +20,6 @@ class Match:
 class Segment:
     start: int
     text: str
-
-
-def get_arg(name: str, default: Union[str, int, None] = None):
-    if name not in sys.argv:
-        if default:
-            return default
-        else:
-            print(f"Argument '{name}' is required to run the script")
-            exit(1)
-
-    index = sys.argv.index(name)
-    return sys.argv[index+1]
 
 
 def get_text():

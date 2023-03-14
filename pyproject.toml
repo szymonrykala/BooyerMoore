@@ -9,6 +9,8 @@ packages = [{include = "booyer_moore"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 
+[virtualenvs]
+in-project = true
 
 [build-system]
 requires = ["poetry-core"]
