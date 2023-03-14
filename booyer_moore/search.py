@@ -42,20 +42,19 @@ def get_text():
 
 
 def split_to_segments(text: str, pattern: str, length: int = 100):
-    offset = 0
 
     for i in range(0, len(text), length):
-        seg = Segment(i+offset, text[i + offset: length + i + offset])
-
+        offset = 0
+        seg = Segment(i, text[i: length + i])
+        
         while seg.text and seg.text[-1] in pattern:
-            offset += len(pattern)
+            offset += 1
             seg = Segment(i, text[i: length + i + offset])
 
         yield seg
 
 
 def search(seg: Segment, pattern: str):
-    # print(f"Start job: {pattern} {seg}")
     results = []
     for i in range(0, len(seg.text), len(pattern)):
         if seg.text[i] in pattern:
@@ -73,16 +72,13 @@ if __name__ == "__main__":
     PATTERN = get_arg("--pattern")
 
     SEGMENT_LENGTH = int(get_arg("--segment-length", 2_000))
-    SEGMENTS_PER_WORKER = int(get_arg("--segments-per-worker", 4))
-    WORKERS = round(len(TEXT) / (SEGMENT_LENGTH*SEGMENTS_PER_WORKER))
-    WORKERS = 1 if WORKERS == 0 else WORKERS
+    WORKERS = int(get_arg("--workers", 1)) or 1
 
     print(f"pattern: {PATTERN}")
     print(f"segment-length: {SEGMENT_LENGTH}")
-    print(f"segments-per-worker: {SEGMENTS_PER_WORKER}")
+    print(f"workers: {WORKERS}", end="\n\n")
     print("------")
     print(f"text lenght: {len(TEXT)}")
-    print(f"workers number: {WORKERS}", end="\n\n")
 
     start_time = time()
 
