@@ -8,6 +8,7 @@ packages = [{include = "booyer_moore"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
+numpy = "^1.24.2"
 
 [virtualenvs]
 in-project = true
