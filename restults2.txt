@@ -1,0 +1,10 @@
+pattern: discordasd
+segment-length: 10000
+workers: 20
+
+------
+text lenght: 75587564
+work time: 1660.722255706787 ms
+
+Results:
+Total count: 0
