@@ -3,6 +3,7 @@
 from typing import Union
 import sys
 
+
 def get_arg(name: str, default: Union[str, int, None] = None):
     if name not in sys.argv:
         # Explicitly check against None, otherwise 0 is treated as missing argument
@@ -13,4 +14,4 @@ def get_arg(name: str, default: Union[str, int, None] = None):
             return default
 
     index = sys.argv.index(name)
-    return sys.argv[index+1]
+    return sys.argv[index + 1]
