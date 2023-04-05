@@ -1,7 +1,10 @@
 #!/usr/bin/python3
 
-from time import time
 import sys
+from concurrent.futures import ThreadPoolExecutor
+from time import sleep, time
+from typing import Generator
+
 from utils import get_arg
 
 
@@ -25,8 +28,7 @@ def __pattern_matching_chars_map(string, size):
     return pattern_chars_map
 
 
-def search(txt, pattern):
-    results = []
+def search(txt, pattern)->Generator[tuple[int,int], None, None]:
     pattern_length = len(pattern)
     text_length = len(txt)
 
@@ -35,15 +37,15 @@ def search(txt, pattern):
     cursor_position = 0
     while (cursor_position <= text_length - pattern_length):
         j = pattern_length - 1
-        print(f"{cursor_position}")
+
         while j >= 0 and pattern[j] == txt[cursor_position + j]:
             j -= 1
 
         if j < 0:
-            results.append((
+            yield (
                 cursor_position,
                 cursor_position + pattern_length
-            ))
+            )
 
             if cursor_position + pattern_length < text_length:
                 cursor_position += (pattern_length -
@@ -58,21 +60,53 @@ def search(txt, pattern):
                 #Unsupported char
                 cursor_position += 1
 
-    return results
-
+    
 
 if __name__ == "__main__":
     TEXT = get_text()
     PATTERN = get_arg("--pattern")
+    
+    workers = int(get_arg("--workers", 2))
+    
+    text_length = len(TEXT)
+    # max_text_size = 38_000_000
+    max_text_size = round(text_length/workers)
 
     print("-"*20)
     print(f"pattern: {PATTERN}")
     print(f"text lenght: {len(TEXT)}")
     print("-"*20)
+    
+    def get_chunked_text(text:str)->list[str]:
+        l = list(range(1, text_length, max_text_size))
+        fragments = []
+        for i,num in enumerate(l[1:],1):
+            while text[num] in PATTERN:
+                l[i]+= len(PATTERN) 
+                num+= len(PATTERN)
+            else:
+                fragments.append(text[l[i - 1] : num])
 
-    start_time = time()
+        return fragments
 
-    results = search(TEXT, PATTERN)
+    if(text_length > max_text_size):
+        text_list = get_chunked_text(TEXT)
+    else:
+        text_list = (TEXT,)
+        
+
+    results = []
+
+    with ThreadPoolExecutor(round(text_length/max_text_size)or 1) as exec:
+        start_time = time()
+        jobs = tuple(
+            exec.submit(search, text_chunk, PATTERN)
+            for text_chunk in text_list
+        )
+        
+        for job in jobs:
+            results.extend(job.result()) 
+
 
     end_time = time()-start_time
 
