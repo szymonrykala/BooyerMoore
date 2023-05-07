@@ -1,22 +1,66 @@
 #!/usr/bin/python3
 
-from concurrent.futures import ThreadPoolExecutor
-import sys
+import random
 import string
+import sys
+from abc import ABC
+from concurrent.futures import ThreadPoolExecutor
 from typing import Iterator
-import numpy as np
 
+import numpy as np
 from utils import get_arg
 
-def generate_text(length: int, mean: float, std_dev: float, character_set: str):
-    mean = (len(character_set) - 1) / 2 if not mean else mean
-    std_dev = mean / 2 if not std_dev else std_dev
+class Distribution(ABC):
+    def __init__(self, mean: float, std_dev: float) -> None:
+        super().__init__()
 
-    sample = ""
+        self.mean = mean
+        self.std_dev = std_dev
 
-    for _ in range(length):
-        character_weights = np.random.normal(mean, std_dev, len(character_set))
-        sample += character_set[character_weights.argmax()]
+    def random(self, size):
+        pass
+
+class NormalDistribution(Distribution):
+    def random(self, size):
+        return np.random.normal(self.mean, self.std_dev, size)
+
+class UniformDistribution(Distribution):
+    def random(self, size):
+        return np.random.uniform(self.mean, self.mean + self.std_dev, size)
+
+DISTRIBUTIONS = {
+    'normal': NormalDistribution,
+    'uniform': UniformDistribution,
+}
+
+# Fn to make sure we output the amount of characters we need
+def offset_and_scale(arr, target_sum):
+    # offset to make all numbers positive
+    arr = arr - np.min(arr) + 1
+
+    # scale the array to the target sum
+    arr = arr / np.sum(arr) * target_sum
+
+    # round to integers
+    arr = np.round(arr).astype(int)
+
+    # adjust the sum if necessary
+    diff = np.sum(arr) - target_sum
+    if diff > 0:
+        arr[np.argsort(arr)[-diff:]] -= 1
+    elif diff < 0:
+        arr[np.argsort(arr)[:abs(diff)]] += 1
+
+    return arr
+
+def generate_text(distribution: Distribution, length: int, character_set: str = string.ascii_lowercase + ' '):
+    sample = []
+    character_count = offset_and_scale(distribution.random(len(character_set)), length)
+
+    for idx, cnt in enumerate(character_count):
+        sample.extend(character_set[idx] * int(cnt))
+
+    random.shuffle(sample)
 
     return ''.join(sample)
 
@@ -34,25 +78,30 @@ def calculate_amount_of_characters_per_worker(num_workers: int, num_char: int) -
 
         yield assignments
 
+# Worth noting that it has problems with length/workers close to and lower than 1
+# But it doesnt matter for our use case as we need to generate huge amount of text
+# It doesnt really need to be fast so we can always lower amount of workers
 if __name__ == "__main__":
     LENGTH = int(get_arg("--length"))
 
-    MEAN = float(get_arg("--mean", 0))
+    MEAN = float(get_arg("--mean", 1))
     STD_DEV = float(get_arg("--std-dev", 0))
     CHARACTER_SET = get_arg("--character-set", string.ascii_lowercase + ' ')
     WORKERS = int(get_arg("--workers", 1)) or 1
+    DISTRIBUTION = DISTRIBUTIONS[get_arg("--distribution", 'normal')](MEAN, STD_DEV)
 
     length_per_worker = round(LENGTH/WORKERS)
 
     with ThreadPoolExecutor(WORKERS) as exc:
         results = []
         text_generation_jobs = [
-            exc.submit(generate_text, words_per_worker, MEAN, STD_DEV, CHARACTER_SET)
-            for words_per_worker in calculate_amount_of_characters_per_worker(WORKERS, LENGTH)
+            exc.submit(generate_text, DISTRIBUTION, length, CHARACTER_SET)
+            for length in calculate_amount_of_characters_per_worker(WORKERS, LENGTH)
         ]
 
         for job in text_generation_jobs:
             results.append(job.result())
 
-    sys.stdout.write(''.join(results))
-    sys.stdout.write('\n')
+    results = ''.join(results)
+
+    sys.stdout.write(results)
