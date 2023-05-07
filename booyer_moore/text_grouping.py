@@ -25,10 +25,27 @@ def group(text: str, group_size: int, overlapping: bool = False):
 
 if __name__ == "__main__":
     INPUT = get_arg("--input", "") or sys.stdin.read()
+    GROUP_SIZE = int(get_arg("--group-size", 0))
+    GROUP_OVERLAPPING = get_arg("--group-overlapping", False)
+    OUTPUT = get_arg("--output", "groups.png")
+    SHOW = get_arg("--show", False)
 
-    print(f"Generated text: {INPUT}")
+    if not GROUP_SIZE > 0:
+        print("Group size should be greater than 0")
 
-    for i in range(1, 6):
-        for overlapping in [False, True]:
-            groups = group(INPUT, i, overlapping)
-            print(f"Grouped by {i} {'' if overlapping else 'non '}overlapping groups: {groups}")
+    print(f"Input text: {INPUT}")
+
+    groups = Counter(group(INPUT, GROUP_SIZE, GROUP_OVERLAPPING))
+    print(f"Grouped by {GROUP_SIZE} {'' if GROUP_OVERLAPPING else 'non '}overlapping groups: {groups}")
+
+    group_labels, group_values = zip(*sorted(groups.items(), key=lambda d: d[1]))
+
+    plt.figure(figsize=(12,6))
+    plt.bar(group_labels, group_values, width=.5, color='g') # Sorted
+
+    plt.xticks(group_labels, group_labels, rotation='vertical')
+
+    if SHOW:
+        plt.show()
+    else:
+        plt.savefig(OUTPUT)

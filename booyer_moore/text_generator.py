@@ -53,14 +53,17 @@ def offset_and_scale(arr, target_sum):
 
     return arr
 
-def generate_text(distribution: Distribution, length: int, character_set: str = string.ascii_lowercase + ' '):
+def generate_text(distribution: Distribution, length: int, character_set: str = string.ascii_lowercase + ' ', seed: int = None):
+    if seed:
+        np.random.seed(seed)
+
     sample = []
     character_count = offset_and_scale(distribution.random(len(character_set)), length)
 
     for idx, cnt in enumerate(character_count):
         sample.extend(character_set[idx] * int(cnt))
 
-    random.shuffle(sample)
+    np.random.shuffle(sample)
 
     return ''.join(sample)
 
@@ -90,13 +93,15 @@ if __name__ == "__main__":
     WORKERS = int(get_arg("--workers", 1)) or 1
     DISTRIBUTION = DISTRIBUTIONS[get_arg("--distribution", 'normal')](MEAN, STD_DEV)
 
+    SEED = int(get_arg("--seed", 0))
+
     length_per_worker = round(LENGTH/WORKERS)
 
     with ThreadPoolExecutor(WORKERS) as exc:
         results = []
         text_generation_jobs = [
-            exc.submit(generate_text, DISTRIBUTION, length, CHARACTER_SET)
-            for length in calculate_amount_of_characters_per_worker(WORKERS, LENGTH)
+            exc.submit(generate_text, DISTRIBUTION, length, CHARACTER_SET, (SEED+i) if SEED else None)
+            for i,length in enumerate(calculate_amount_of_characters_per_worker(WORKERS, LENGTH))
         ]
 
         for job in text_generation_jobs:
