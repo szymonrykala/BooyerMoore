@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Iterator
 
 import numpy as np
-from utils import get_arg
+from booyer_moore.utils import get_arg
 
 class Distribution(ABC):
     def __init__(self, mean: float, std_dev: float) -> None:
@@ -18,7 +18,7 @@ class Distribution(ABC):
         self.std_dev = std_dev
 
     def random(self, size):
-        pass
+        raise Exception('Not implemented')
 
 class NormalDistribution(Distribution):
     def random(self, size):

@@ -9,7 +9,7 @@ import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 
-from utils import get_arg
+from booyer_moore.utils import get_arg
 
 from itertools import groupby
 
