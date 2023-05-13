@@ -34,9 +34,10 @@ DISTRIBUTIONS = {
 }
 
 # Fn to make sure we output the amount of characters we need
-def offset_and_scale(arr, target_sum):
+def offset_and_scale(arr: np.ndarray, target_sum):
     # offset to make all numbers positive
-    arr = arr - np.min(arr) + 1
+    offset = abs(np.min(arr)) + 1
+    arr = arr + offset
 
     # scale the array to the target sum
     arr = arr / np.sum(arr) * target_sum
@@ -58,7 +59,8 @@ def generate_text(distribution: Distribution, length: int, character_set: str = 
         np.random.seed(seed)
 
     sample = []
-    character_count = offset_and_scale(distribution.random(len(character_set)), length)
+    weights = distribution.random(len(character_set))
+    character_count = offset_and_scale(weights, length)
 
     for idx, cnt in enumerate(character_count):
         sample.extend(character_set[idx] * int(cnt))
@@ -87,8 +89,8 @@ def calculate_amount_of_characters_per_worker(num_workers: int, num_char: int) -
 if __name__ == "__main__":
     LENGTH = int(get_arg("--length"))
 
-    MEAN = float(get_arg("--mean", 1))
-    STD_DEV = float(get_arg("--std-dev", 0))
+    MEAN = float(get_arg("--mean", 0))
+    STD_DEV = float(get_arg("--std-dev", 1))
     CHARACTER_SET = get_arg("--character-set", string.ascii_lowercase + ' ')
     WORKERS = int(get_arg("--workers", 1)) or 1
     DISTRIBUTION = DISTRIBUTIONS[get_arg("--distribution", 'normal')](MEAN, STD_DEV)
