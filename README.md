@@ -20,14 +20,23 @@ search.py --text-file text_file.txt --pattern ale
 ```
 
 ## Text generation script
-* `--words` - required - number of words to generate
-* `--word-length` - optional - length of generated words - default: random
-* `--mean` - optional - mean of the normal distribution used for random generation of letters and word length - default: length of the character set / 2
-* `--std-dev` - optional - standard deviation of the normal distribution used for random generation of letters and word length - default: mean / 2
+* `--length` - required - number of characters to generate
+* `--distribution` - optional - distribution of generated characters - available: normal, uniform - default: normal
+* `--mean` - optional - mean of the distribution used for random generation of letters - default: 1
+* `--std-dev` - optional - standard deviation of the distribution used for random generation of letters - default: 0
 * `--character-set` - optional - set of characters that words will be generated from - default: abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
 * `--workers` - optional - amount of thread workers used to generate text - default: 1
 
 Invoking samples
 ```bash
-./text_generator.py --words 10000 --mean 0 --std-dev 1 --workers 10
+./text_generator.py --length 10000 --mean 1 --std-dev 0
+```
+
+## Text visualization script
+* `--input` - required - input stream of characters to visualize
+* `--output` - optional - output path of the image - default: foo.png
+
+Invoking samples
+```bash
+./text_generator.py --length 10000 | ./text_visualization.py
 ```
