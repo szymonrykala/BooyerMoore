@@ -1,91 +1,44 @@
 #!/usr/bin/python3
 
-import math
-import random
-import string
-import sys
-from abc import ABC
 from concurrent.futures import ThreadPoolExecutor
+import random
+import sys
+import string
 from typing import Iterator
 
-import numpy as np
-from booyer_moore.utils import get_arg
+from utils import get_arg
 
-class Distribution(ABC):
-    def __init__(self, mean: float, std_dev: float) -> None:
-        super().__init__()
+def offset(array: list[int], offset = 1) -> list[int]:
+    return [z - min(array) + offset for z in array] if min(array) < 1 else array # no need for ofset if we have positive numbers
 
-        self.mean = mean
-        self.std_dev = std_dev
+def generate_word(length: int, character_set: str, mean: float, std_dev: float) -> str:
+    # random.choices weights sum needs to be greater than 0, so offset them so its always the case
+    weights = offset([random.normalvariate(mean, std_dev) for _ in range(len(character_set))])
 
-    def random(self, size):
-        raise Exception('Not implemented')
-
-class NormalDistribution(Distribution):
-    def random(self, size):
-        return np.random.normal(self.mean, self.std_dev, size)
-
-class UniformDistribution(Distribution):
-    def random(self, size):
-        return np.random.uniform(self.mean, self.mean + self.std_dev, size)
-
-DISTRIBUTIONS = {
-    'normal': NormalDistribution,
-    'uniform': UniformDistribution,
-}
-
-# Fn to make sure we output the amount of characters we need
-def offset_and_scale(arr: np.ndarray, target_sum):
-    # offset to make all numbers positive
-    offset = abs(np.min(arr)) + 1
-    arr = arr + offset
-
-    # scale the array to the target sum
-    arr = arr / np.sum(arr) * target_sum
-
-    # round to integers
-    arr = np.round(arr).astype(int)
-
-    # adjust the sum if necessary
-    diff = np.sum(arr) - target_sum
-    if diff > 0:
-        arr[np.argsort(arr)[-diff:]] -= 1
-    elif diff < 0:
-        arr[np.argsort(arr)[:abs(diff)]] += 1
-
-    return arr
-
-def generate_text(distribution: Distribution, length: int, character_set: str = string.ascii_lowercase + ' ', seed: int = None):
-    if seed:
-        np.random.seed(seed)
-
-    # sample = ''
-    # weights = distribution.random(length)
-    # offset = abs(np.min(weights))
-    # weights = weights + offset
-
-    # weights *= (len(character_set)-1)/weights.max()
-    # weights = np.rint(weights).astype(int)
-
-    # for i in weights:
-    #     sample += character_set[i]
-    # return sample
-
-    sample = []
-    weights = distribution.random(len(character_set))
-    character_count = offset_and_scale(weights, length)
-
-    for idx, cnt in enumerate(character_count):
-        sample.extend(character_set[idx] * int(cnt))
-
-    np.random.shuffle(sample)
+    sample = random.choices(
+        character_set,
+        weights=weights,
+        k=length
+    )
 
     return ''.join(sample)
 
-def calculate_amount_of_characters_per_worker(num_workers: int, num_char: int) -> Iterator[int]:
+def generate_text(words: int, word_length: int, mean: float, std_dev: float, character_set: str):
+    mean = (len(character_set) - 1) / 2 if not mean else mean
+    std_dev = mean / 2 if not std_dev else std_dev
+
+    # Depending on mean and std_dev, normal distribution can return values that are rouded to 0 or negative number and we get word with length 0
+    # To avoid that calculate lenghts first and offset them so length is always positive
+    word_lengths = offset([round(random.normalvariate(mean, std_dev)) for _ in range(words)])
+
+    words = [generate_word(word_length if word_length else word_lengths[i], character_set, mean, std_dev) for i in range(words)]
+
+    return ' '.join(words)
+
+def calculate_amounts_of_words_per_worker(num_workers: int, num_words: int) -> Iterator[int]:
     # calculate the number of jobs each worker should get
-    jobs_per_worker = num_char // num_workers
-    remainder = num_char % num_workers
+    jobs_per_worker = num_words // num_workers
+    remainder = num_words % num_workers
 
     # assign the jobs to the workers
     for i in range(num_workers):
@@ -96,32 +49,26 @@ def calculate_amount_of_characters_per_worker(num_workers: int, num_char: int) -
 
         yield assignments
 
-# Worth noting that it has problems with length/workers close to and lower than 1
-# But it doesnt matter for our use case as we need to generate huge amount of text
-# It doesnt really need to be fast so we can always lower amount of workers
 if __name__ == "__main__":
-    LENGTH = int(get_arg("--length"))
+    WORDS = int(get_arg("--words"))
 
+    WORD_LENGTH = int(get_arg("--word-length", 0))
     MEAN = float(get_arg("--mean", 0))
-    STD_DEV = float(get_arg("--std-dev", 1))
-    CHARACTER_SET = get_arg("--character-set", string.ascii_lowercase + ' ')
+    STD_DEV = float(get_arg("--std-dev", 0))
+    CHARACTER_SET = get_arg("--character-set", string.ascii_letters)
     WORKERS = int(get_arg("--workers", 1)) or 1
-    DISTRIBUTION = DISTRIBUTIONS[get_arg("--distribution", 'normal')](MEAN, STD_DEV)
 
-    SEED = int(get_arg("--seed", 0))
-
-    length_per_worker = round(LENGTH/WORKERS)
+    words_per_worker = round(WORDS/WORKERS)
 
     with ThreadPoolExecutor(WORKERS) as exc:
         results = []
         text_generation_jobs = [
-            exc.submit(generate_text, DISTRIBUTION, length, CHARACTER_SET, (SEED+i) if SEED else None)
-            for i,length in enumerate(calculate_amount_of_characters_per_worker(WORKERS, LENGTH))
+            exc.submit(generate_text, words_per_worker, WORD_LENGTH, MEAN, STD_DEV, CHARACTER_SET)
+            for words_per_worker in calculate_amounts_of_words_per_worker(WORKERS, WORDS)
         ]
 
         for job in text_generation_jobs:
             results.append(job.result())
 
-    results = ''.join(results)
-
-    sys.stdout.write(results)
+    sys.stdout.write(' '.join(results))
+    sys.stdout.write('\n')
