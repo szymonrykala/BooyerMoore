@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import math
 import random
 import string
 import sys
@@ -57,6 +58,18 @@ def offset_and_scale(arr: np.ndarray, target_sum):
 def generate_text(distribution: Distribution, length: int, character_set: str = string.ascii_lowercase + ' ', seed: int = None):
     if seed:
         np.random.seed(seed)
+
+    # sample = ''
+    # weights = distribution.random(length)
+    # offset = abs(np.min(weights))
+    # weights = weights + offset
+
+    # weights *= (len(character_set)-1)/weights.max()
+    # weights = np.rint(weights).astype(int)
+
+    # for i in weights:
+    #     sample += character_set[i]
+    # return sample
 
     sample = []
     weights = distribution.random(len(character_set))
