@@ -72,7 +72,7 @@ if __name__ == "__main__":
     # reading script parameters
     TEXT = get_text()
     PATTERN = get_arg("--pattern")
-    workers_count = int(get_arg("--workers", 1))
+    workers_count = int(get_arg("--workers", 3))
 
     text_length = len(TEXT)
     max_text_size = round(text_length / workers_count)
