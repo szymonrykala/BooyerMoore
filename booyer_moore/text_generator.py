@@ -59,18 +59,6 @@ def generate_text(distribution: Distribution, length: int, character_set: str = 
     if seed:
         np.random.seed(seed)
 
-    # sample = ''
-    # weights = distribution.random(length)
-    # offset = abs(np.min(weights))
-    # weights = weights + offset
-
-    # weights *= (len(character_set)-1)/weights.max()
-    # weights = np.rint(weights).astype(int)
-
-    # for i in weights:
-    #     sample += character_set[i]
-    # return sample
-
     sample = []
     weights = distribution.random(len(character_set))
     character_count = offset_and_scale(weights, length)
@@ -96,9 +84,6 @@ def calculate_amount_of_characters_per_worker(num_workers: int, num_char: int) -
 
         yield assignments
 
-# Worth noting that it has problems with length/workers close to and lower than 1
-# But it doesnt matter for our use case as we need to generate huge amount of text
-# It doesnt really need to be fast so we can always lower amount of workers
 if __name__ == "__main__":
     LENGTH = int(get_arg("--length"))
 
